@@ -1,12 +1,23 @@
-import * as XLSX from 'xlsx';
-import {join } from 'path';
-const { read, utils: { sheet_to_json } } = XLSX;
+import { join } from 'path';
+import { readFile } from 'fs';
+import { parse } from 'papaparse';
 
-export function readFirstSheet(data: any, options: XLSX.ParsingOptions = {}) {
-	const wb: XLSX.WorkBook = read(data, options);
-	console.log(wb);
-	const ws: XLSX.WorkSheet = wb.Sheets[wb.SheetNames[0]];
-	// return sheet_to_json(ws, { header: 1, raw: true });
+const filepath = join(__dirname, '../umls.csv');
+
+function headerTransform(header: string) {
+	return header.replace(/[^\w+]/g, '');
 }
 
-console.log(readFirstSheet(join(__dirname, '../umls.xlsx')));
+export function search(params: any) {
+	return new Promise((resolve, reject) => {
+		readFile(filepath, { encoding: 'utf8' }, (error, data) => {
+			if (error) {
+				return reject(error);
+			}
+			const jsonData = parse(data, { header: true, transformHeader: headerTransform });
+			resolve(jsonData.data.filter((value: any) =>
+				Object.keys(params).every(key => value[key] === params[key])
+			));
+		});
+	})
+}
